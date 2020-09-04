@@ -1,0 +1,96 @@
+---
+title: "Pixar_survey"
+author: "Mustafa Telab"
+date: "9/3/2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(readr)
+library(plyr)
+library(sqldf)
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+
+box_office <- read.csv('/Users/mustafatelab/Desktop/CUNY SPS MSDS/607 - Data Acquisition & Management/Week 2/Assignment/box_office.csv')
+survey <- read.csv('/Users/mustafatelab/Desktop/CUNY SPS MSDS/607 - Data Acquisition & Management/Week 2/Assignment/Pixar_Survey - Favorite Pixar Film.csv')
+
+```
+
+The Below is an analysis conducted on a small social sample, requesting the participants to rate a selection of movies from 1-10.  The results show the movie, rating, and an id designating which results came from the same participant.
+
+The first goal is to see which movie is the most liked by my social circle.
+
+Secondly, we will find out who is the biggest critic.
+
+lastly, by integrating box office data, we will check for if the ratings are assiciated with the money the movies brought in.
+
+```{r}
+head(survey)
+```
+
+The Winner Is: Toy Story
+
+Not So Much: A Bug's Life unfortunately comes in last.
+
+```{r}
+avg_movie_rating <- sqldf('select movie, avg(Ratings) from survey group by Movie Order by avg(Ratings) desc')
+avg_movie_rating
+
+
+```
+Biggest Critic: Participant number 12!
+(must not be a huge fan of animated films)
+
+```{r}
+avg_user_rating <- sqldf('select userid, avg(Ratings) from survey group by userid Order by avg(Ratings)')
+avg_user_rating
+```
+We also have box office numbers for the associated films.
+(USA and worldwide do not overlap)
+
+```{r}
+box_office
+
+```
+
+
+Lets combine the ratings with the box office
+
+```{r}
+rating_box <- avg_movie_rating %>%
+  left_join( box_office, by = c( 'Movie' = 'movies'), copy = FALSE)%>%
+  mutate(total_gross = usa_box_office + world_box_office)
+
+rating_box
+
+```
+Rating VS Total$$
+
+```{r}
+cor(rating_box$`avg(Ratings)`, rating_box$total_gross)
+plot(rating_box$`avg(Ratings)`, rating_box$total_gross)
+```
+
+Rating VS Domestic$$
+
+```{r}
+cor(rating_box$`avg(Ratings)`, rating_box$usa_box_office)
+plot(rating_box$`avg(Ratings)`, rating_box$usa_box_office)
+```
+
+Rating VS Foreign$$
+
+```{r}
+cor(rating_box$`avg(Ratings)`, rating_box$world_box_office)
+plot(rating_box$`avg(Ratings)`, rating_box$world_box_office)
+```
+
+From the sample that we surveyed, there does not appear to be a strong correlation between box office gross and movie rating.
+
+However, we do see that the more local the box office measure the higher the correlation, with domestic being the most correlated, and rest of the world being the least correlated.
